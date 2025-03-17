@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Grist Kanban Example</title>
+    <!-- Load the Grist Plugin API script -->
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <style>
+      /* Simple styling for columns/cards (tweak as desired) */
+      .lane {
+        width: 200px;
+        border: 1px solid #ccc;
+        display: inline-block;
+        vertical-align: top;
+        margin-right: 10px;
+        padding: 5px;
+      }
+      .card {
+        border: 1px solid #999;
+        margin-bottom: 5px;
+        padding: 5px;
+      }
+      .column-header {
+        text-align: center;
+        border-bottom: 1px solid #ccc;
+        margin-bottom: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="board">Loading Kanban data...</div>
+
+    <script>
+      // Make the plugin ready to receive data
+      grist.ready({
+        requiredAccess: 'full',
+        columns: ['status']
+      });
+
+      // Whenever records change in Grist (e.g. user edits, table changes, etc.), re-render the board
+      grist.onRecords(function (records) {
+        if (records.length === 0) {
+          board.textContent = "No data yet";
+          return;
+        }
+        
+        board.innerHTML = ""; // Clear the board
+
+        // Group the incoming records by the chosen column
+        const lanes = {};
+        for (const r of records) {
+          // map the record by column name for convenience
+          const mapped = grist.mapColumnNames(r);
+          // The chosen column's value might be undefined or empty, so handle that gracefully
+          const laneName = mapped.status || "(No value)";
+          if (!lanes[laneName]) {
+            lanes[laneName] = [];
+          }
+          lanes[laneName].push(r);
+        }
+
+        // Build a lane for each distinct value in the selected field
+        for (const [laneName, laneRecords] of Object.entries(lanes)) {
+          const laneEl = document.createElement("div");
+          laneEl.className = "lane";
+
+          const headerEl = document.createElement("div");
+          headerEl.className = "column-header";
+          headerEl.textContent = laneName;
+          laneEl.appendChild(headerEl);
+
+          // Create a card for each record in this lane
+          for (const rec of laneRecords) {
+            const cardEl = document.createElement("div");
+            cardEl.className = "card";
+
+            // For demo, just display the record ID and entire record as JSON
+            // In a real app, you might display a subset or more stylishly
+            cardEl.textContent = `Record #${rec.id}: ${JSON.stringify(rec)}`;
+            laneEl.appendChild(cardEl);
+          }
+
+          board.appendChild(laneEl);
+        }
+      });
+    </script>
+  </body>
+</html>
